@@ -20,8 +20,35 @@ if (!process.env.MONGODB_URI) {
 const client = new MongoClient(process.env.MONGODB_URI);
 const DB_NAME = "controle_transporte";
 
+let mongoConnection;
+
+async function connectToMongo() {
+  if (!mongoConnection) {
+    mongoConnection = client.connect()
+      .then(() => client.db(DB_NAME).command({ ping: 1 }))
+      .catch(error => {
+        mongoConnection = null;
+        throw error;
+      });
+  }
+
+  return mongoConnection;
+}
+
 app.use(express.json({ limit: "1mb" }));
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, "public")));
+
+app.use("/api", async (req, res, next) => {
+  try {
+    await connectToMongo();
+    next();
+  } catch (error) {
+    console.error("Erro ao conectar ao MongoDB:", error.message);
+    res.status(500).json({
+      erro: "Não foi possível conectar ao banco de dados."
+    });
+  }
+});
 
 const db = () => client.db(DB_NAME);
 const collection = name => db().collection(name);
@@ -369,22 +396,10 @@ app.use((error, req, res, next) => {
   });
 });
 
-// Iniciar somente depois de conectar ao MongoDB.
-async function startServer() {
-  try {
-    await client.connect();
-    await db().command({ ping: 1 });
+export default app;
 
-    console.log("MongoDB conectado com sucesso!");
-
-    app.listen(PORT, () => {
-      console.log(`Servidor rodando na porta ${PORT}`);
-    });
-  } catch (error) {
-    console.error("Erro ao iniciar o servidor:", error.message);
-    await client.close().catch(() => {});
-    process.exit(1);
-  }
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
+  });
 }
-
-startServer();
