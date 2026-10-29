@@ -1740,15 +1740,17 @@ function openExpense() {
     }
   });
 }
-
 function openCash() {
   const txs = [...data.transactions].sort((a, b) =>
     b.date.localeCompare(a.date)
   );
 
-  const totalIn = txs.filter(t => t.type === "income")
+  const totalIn = txs
+    .filter(t => t.type === "income")
     .reduce((s, t) => s + Number(t.amount), 0);
-  const totalOut = txs.filter(t => t.type === "expense")
+
+  const totalOut = txs
+    .filter(t => t.type === "expense")
     .reduce((s, t) => s + Number(t.amount), 0);
 
   let html = `
@@ -1773,6 +1775,13 @@ function openCash() {
         <div>
           <strong>${escapeHTML(t.description)}</strong>
           <p class="muted small">${parseDate(t.date).toLocaleDateString("pt-BR")}</p>
+          ${t.type === "income" ? `
+            <div class="list-actions">
+              <button class="danger" onclick="cancelCashTransaction('${t.id}')">
+                Cancelar lançamento
+              </button>
+            </div>
+          ` : ""}
         </div>
         <div style="text-align:right;white-space:nowrap">
           <strong class="${t.type === "income" ? "positive" : "negative"}">
@@ -1787,6 +1796,51 @@ function openCash() {
   openModal("Caixa financeiro", html);
 }
 
+async function cancelCashTransaction(id) {
+  const tx = data.transactions.find(t => t.id === id);
+  if (!tx || tx.type !== "income") return;
+
+  const client = tx.clientId
+    ? data.clients.find(c => String(c.id) === String(tx.clientId))
+    : null;
+
+  const message = client
+    ? `Cancelar o pagamento de ${client.name}? O cliente voltará para Pendente.`
+    : `Cancelar a receita "${tx.description}"? O valor será retirado do caixa.`;
+
+  if (!confirm(message)) return;
+
+  try {
+    await apiRequest(`/movimentacoes/${encodeURIComponent(tx.id)}`, {
+      method: "DELETE"
+    });
+
+    data.transactions = data.transactions.filter(t => t.id !== tx.id);
+
+    saveData();
+    notify(client
+      ? "Pagamento cancelado. Cliente voltou para Pendente."
+      : "Receita cancelada e removida do caixa."
+    );
+
+    if (client) {
+      const paymentMonth = transactionPaymentMonth(tx);
+      const dueDate = dueDateInMonth(
+        client,
+        new Date(Number(paymentMonth.slice(0, 4)), Number(paymentMonth.slice(5, 7)) - 1, 1)
+      );
+
+      openDay(dueDate || selectedDate || todayISO());
+    } else {
+      openCash();
+    }
+
+  } catch (error) {
+    console.error("Erro ao cancelar movimentação:", error);
+    notify(error.message || "Não foi possível cancelar o lançamento.");
+    await loadData();
+  }
+}
 function exportCSV() {
   const rows = [["Data", "Mês do pagamento", "Tipo", "Descrição", "Valor"]];
   data.transactions.forEach(t => {
