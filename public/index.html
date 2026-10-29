@@ -1764,6 +1764,7 @@ function openExpense() {
     }
   });
 }
+
 function openCash() {
   const txs = [...data.transactions].sort((a, b) =>
     b.date.localeCompare(a.date)
@@ -1786,6 +1787,7 @@ function openCash() {
         <span class="negative small">Saídas: ${money(totalOut)}</span>
       </div>
     </div>
+
     <div class="section-head">
       <h3>Movimentações</h3>
       <button class="secondary" onclick="exportCSV()">Exportar CSV</button>
@@ -1796,32 +1798,32 @@ function openCash() {
   } else {
     html += txs.map(t => `
       <div class="cash-line">
-        <div>
+        <div style="flex:1;min-width:0">
           <strong>${escapeHTML(t.description)}</strong>
-          <p class="muted small">${parseDate(t.date).toLocaleDateString("pt-BR")}</p>
-          ${String(t.type).toLowerCase().trim() === "income" ? `
-            <div class="list-actions">
-              <button class="danger" onclick="cancelCashTransaction('${t.id}')">
-                Cancelar lançamento
-              </button>
-            </div>
-          ` : ""}
-        </div>
-     <div style="text-align:right;white-space:nowrap">
-  <strong class="${String(t.type).toLowerCase().trim() === "income" ? "positive" : "negative"}">
-    ${String(t.type).toLowerCase().trim() === "income" ? "+" : "−"} ${money(t.amount)}
-  </strong>
-  <p class="muted small">
-    ${String(t.type).toLowerCase().trim() === "income" ? "Entrada" : "Saída"}
-  </p>
-</div>
-</div>
+          <p class="muted small">
+            ${parseDate(t.date).toLocaleDateString("pt-BR")}
+          </p>
 
-<div class="list-actions">
-  <button class="danger" onclick="cancelCashTransaction('${t.id}')">
-    Cancelar lançamento
-  </button>
-</div>
+          <p class="muted small">
+            ${t.type === "income" ? "Entrada" : "Saída"}
+          </p>
+
+          <div class="list-actions">
+            <button
+              type="button"
+              class="danger"
+              onclick="cancelCashTransaction('${t.id}')">
+              Cancelar lançamento
+            </button>
+          </div>
+        </div>
+
+        <div style="text-align:right;white-space:nowrap">
+          <strong class="${t.type === "income" ? "positive" : "negative"}">
+            ${t.type === "income" ? "+" : "−"} ${money(t.amount)}
+          </strong>
+        </div>
+      </div>
     `).join("");
   }
 
