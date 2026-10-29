@@ -1783,13 +1783,21 @@ function openCash() {
             </div>
           ` : ""}
         </div>
-        <div style="text-align:right;white-space:nowrap">
-          <strong class="${String(t.type).toLowerCase().trim() === "income" ? "positive" : "negative"}">
-            ${t.type === "income" ? "+" : "−"} ${money(t.amount)}
-          </strong>
-          <p class="muted small">${String(t.type).toLowerCase().trim() === "income" ? "Entrada" : "Saída"}</p>
-        </div>
-      </div>
+     <div style="text-align:right;white-space:nowrap">
+  <strong class="${String(t.type).toLowerCase().trim() === "income" ? "positive" : "negative"}">
+    ${String(t.type).toLowerCase().trim() === "income" ? "+" : "−"} ${money(t.amount)}
+  </strong>
+  <p class="muted small">
+    ${String(t.type).toLowerCase().trim() === "income" ? "Entrada" : "Saída"}
+  </p>
+</div>
+</div>
+
+<div class="list-actions">
+  <button class="danger" onclick="cancelCashTransaction('${t.id}')">
+    Cancelar lançamento
+  </button>
+</div>
     `).join("");
   }
 
